@@ -7,14 +7,8 @@ exports.install = function() {
 	ROUTE('+POST    /api/flow/', flow_save);
 	ROUTE('+GET     /api/flow/', flow_read);
 
-	// Dashboard
-	ROUTE('+GET     /api/dashboard/components/', dashboard_components);
-	ROUTE('+GET     /api/dashboard/flow/', dashboard_flow);
-	ROUTE('+POST    /api/dashboard/', dashboard_save);
-	ROUTE('+GET     /api/dashboard/', dashboard_read);
-
 	// Socket
-	ROUTE('+SOCKET  /', socket, ['json']);
+	ROUTE('+SOCKET  /', socket);
 
 	// Static files
 	FILE('/dashboard/*.html', dashboard_component);
