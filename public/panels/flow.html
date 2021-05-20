@@ -1,0 +1,47 @@
+<div data---="searchinput__%flowsearch__type:search;placeholder:@(Search components)"></div>
+<div data---="viewbox__null__scrollbar:1;visibleY:1;parent:auto;margin:30">
+	<div data---="search__%flowsearch__selector:figure" data-bind="!flow.components2__template" class="flowcomponents">
+		<script type="text/html">
+		{{ if value.pub.length }}
+			<div class="caption">@(Publishers)</div>
+			<div>
+			{{ foreach m in value.pub }}
+				<figure class="exec app app-pub" data-id="{{ m.id }}" draggable="true" data-search="{{ m.name }}{{ if m.schema }} {{ m.schema.id }}{{ fi }}" data-exec="flow/readme">
+					<i class="{{ m.icon }}"></i>
+					<div class="schema">{{ m.schema.id }}</div>
+					<div class="url">{{ m.schema.url }}</div>
+					<div class="type"><span style="background-color:{{ m.name | color }}">{{ m.name }}</span></div>
+				</figure>
+			{{ end }}
+			</div>
+		{{ fi }}
+
+		{{ if value.sub.length }}
+			<div class="caption">@(Subscribers)</div>
+			<div>
+			{{ foreach m in value.sub }}
+				<figure class="exec app app-sub" data-id="{{ m.id }}" draggable="true" data-search="{{ m.name }}{{ if m.schema }} {{ m.schema.id }}{{ fi }}" data-exec="flow/readme">
+					<i class="{{ m.icon }}"></i>
+					<div class="schema">{{ m.schema.id }}</div>
+					<div class="url">{{ m.schema.url }}</div>
+					<div class="type"><span style="background-color:{{ m.name | color }}">{{ m.name }}</span></div>
+				</figure>
+			{{ end }}
+			</div>
+		{{ fi }}
+
+		{{ if value.com.length }}
+			<div class="caption">@(Components)</div>
+			<div>
+			{{ foreach m in value.com }}
+				<figure class="exec" data-id="{{ m.id }}" draggable="true" data-search="{{ m.name }}{{ if m.schema }} {{ m.schema.id }}{{ fi }}" data-exec="flow/readme">
+					<i class="{{ m.icon }}"></i>
+					<div class="schema">{{ m.name }}</div>
+					<div class="type type2"><span>@(Component)</span></div>
+				</figure>
+			{{ end }}
+			</div>
+		{{ fi }}
+		</script>
+	</div>
+</div>

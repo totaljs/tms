@@ -1,6 +1,6 @@
 {
-  "name": "flowstream",
-  "description": "Total.js FlowStream",
+  "name": "tms",
+  "description": "Total.js Message Service",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {

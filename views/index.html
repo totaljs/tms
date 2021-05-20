@@ -1,5 +1,5 @@
 @{layout('')}
-@{title('Flow Stream')}
+@{title('Total.js Message Service')}
 
 <!DOCTYPE html>
 <html>
@@ -10,54 +10,72 @@
 	<meta name="robots" content="all,follow" />
 	<link href="https://cdn.componentator.com/spa.min@18.css" rel="stylesheet" type="text/css" />
 	<script src="//cdn.componentator.com/spa.min@18.js"></script>
-	@{import('meta', 'head', 'default.css + ui.css', 'func.js + ui.js')}
+	@{import('meta', 'head', 'ui.css + default.css', 'func.js + ui.js + helpers.js', 'favicon.png')}
 </head>
 <body data---="exec">
 
-	<div data---="LAZY menu"></div>
+	<div data---="LAZY menu__null__style:2"></div>
 	<div data---="LAZY approve__null__cancel:@(Cancel)"></div>
 	<div data---="LAZY message__null__style:2"></div>
 	<div data---="LAZY notifybar"></div>
+	<div data---="LAZY clipboard"></div>
+
+	<div data---="markdown"></div>
+	<div data---="shortcuts"></div>
 	<div data---="loading"></div>
 
-	<div data---="infowindows__common.windows"></div>
-	<div data---="websocket__null__url:/;encoder:false"></div>
-
-	<header>
-		<div class="custom" data---="virtualwire__common.page"></div>
-		<nav class="menu" data---="selected__common.page__selector:button">
-			<button class="exec" data-exec="common/page" data-if="flow"><i class="fa fa-vector-square"></i>@(Flow)</button>
-		</nav>
+	<header data---="animation__null__init:500;delay:50;style:5">
+		<div class="animation">
+			<button class="exec apply" data-exec="flow/submit"><i class="fa fa-play"></i><span>@(APPLY)</span></button>
+		</div>
+		<div class="animation pull-right">
+			<button title="@(Add source)" class="exec green" data-exec="flow/add"><i class="fa fa-plus"></i></button>
+		</div>
+		<div class="animation">
+			<button title="@(Apps)" class="exec" data-exec="flow/sources"><i class="fa fa-code-branch"></i></button>
+			<button title="@(Clear)" class="exec" data-exec="flow/clear"><i class="far fa-trash-alt"></i></button>
+		</div>
+		<div class="animation">
+			<a href="https://docs.totaljs.com/" title="@(Documentation: Total.js Platform)" target="_blank" class="animation special"><i class="fa fa-book"></i></a>
+		</div>
+		<div class="animation">
+			<button disabled title="@(Undo)" data-bind="flow.undo__enabled:value && value.length" class="exec" data-exec="flow/operation" data-type="undo"><i class="fas fa-undo"></i></button>
+			<button disabled title="@(Redo)" data-bind="flow.redo__enabled:value && value.length" class="exec" data-exec="flow/operation" data-type="redo"><i class="fas fa-redo"></i></button>
+			<button title="@(Zoom in)" class="exec" data-exec="flow/operation" data-type="in"><i class="fas fa-search-plus"></i></button>
+			<button title="@(Reset zoom)" class="exec" data-exec="flow/operation" data-type="reset"><i class="fas fa-bullseye"></i></button>
+			<button title="@(Zoom out)" class="exec" data-exec="flow/operation" data-type="out"><i class="fas fa-search-minus"></i></button>
+		</div>
 	</header>
 
-	<div data---="dockable__mypanels__margin:60">
-		<div data---="part__common.page__if:flow;url:/parts/flow.html;reload:flow/reload" data-id="flow" class="hidden invisible"></div>
+	<div data---="layout__common.layout__margin:45">
+
+		<script type="text/plain">
+			{
+				left: { size: 265, minsize: 200, resize: true },
+				main: {}
+			}
+		</script>
+
+
+		<section data-type="left">
+			<div data-import="url:/panels/flow.html"></div>
+		</section>
+
+		<section data-type="main">
+			<div data---="part__common.page__if:flow;url:/parts/flow.html;reload:flow/reload" data-id="flow" class="hidden invisible"></div>
+		</section>
+
 	</div>
 
 	<script>
 
-		var mypanels = [];
-
-		mypanels.push({
-			id: 'A',
-			offset: { x: 200, y: 100, width: 250, height: 400, minwidth: 200, minheight: 200, docked: 'left' },
-			title: 'Components',
-			html: '<div class="padding">Lorem ipsum dolor sit amet.</div>',
-			actions: { move: true, resize: true, close: false, dockable: 'left right bottom' }
-		});
-
-		mypanels.push({
-			id: 'B',
-			offset: { x: 600, y: 300, width: 250, height: 400, minwidth: 200, minheight: 200, docked: 'right' },
-			title: 'Properties',
-			html: '<div class="padding">Lorem ipsum dolor sit amet.</div>',
-			actions: { move: true, resize: true, close: true, dockable: 'left right bottom' }
-		});
-
 		var common = {};
 
+		common.layout = '';
 		common.windows = [];
 		common.page = 'flow';
+
+		DEF.api = '/api/';
 		DEF.dateformat = '@(yyyy-MM-dd)';
 
 		ON('@flag showloading', function() {
@@ -68,7 +86,13 @@
 			SETTER('loading/hide', 1000);
 		});
 
-		SETTER(true, 'loading/hide', 1000);
+		SETTER(true, 'shortcuts/register', 'CMD+F, CTRL+F', function() {
+			$('.ui-layout-left').find('input').focus();
+		}, true);
+
+		SETTER(true, 'shortcuts/register', 'CMD+ENTER, CTRL+ENTER', function() {
+			EXEC('flow/submit');
+		}, true);
 
 	</script>
 

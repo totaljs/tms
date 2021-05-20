@@ -1,0 +1,32 @@
+<script total>
+
+	exports.name = 'Console';
+	exports.icon = 'fa fa-laptop-code';
+	exports.config = {};
+	exports.inputs = [{ id: 'input', name: 'Input' }];
+
+	exports.make = function(instance) {
+		instance.message = function($) {
+			instance.status($.data);
+			$.destroy();
+		};
+	};
+
+</script>
+
+<style>
+	.fconsole { margin: 10px; }
+	.fconsole pre { font-size: 10px; margin: 0; padding: 5px; background-color: #F0F0F0; border-radius: var(--radius); }
+	.ui-dark .fconsole pre { background-color: #404040; tab-size:  }
+</style>
+
+<body>
+	<div class="meta">
+		<div><i class="fa fa-laptop-code mr5"></i>Console</div>
+	</div>
+	<footer>
+		<div data-bind="!?.status.{0}__html pre:Thelpers.jsonformat(JSON.stringify(value, null, '\t'))__show" class="fconsole hidden selectable">
+			<pre class="json"></pre>
+		</div>
+	</footer>
+</body>
