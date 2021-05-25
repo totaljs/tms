@@ -110,7 +110,6 @@ function connect(item, callback) {
 						// HACK: very fast validation
 						var err = new ErrorBuilder();
 						var data = framework_jsonschema.transform(schema, err, msg.data, true);
-						console.log(schema);
 						if (data) {
 							var id = 'pub' + item.id + 'X' + msg.id;
 							for (var key in TMS.instance.meta.flow) {
