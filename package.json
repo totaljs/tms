@@ -1,6 +1,6 @@
 {
   "name": "tms",
-  "description": "Total.js Message Service",
+  "description": "Total.js TMS",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
@@ -9,7 +9,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["flowstream", "dashboard"],
+  "keywords": ["tms"],
   "author": "Peter Širka",
   "license": "MIT"
 }

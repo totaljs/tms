@@ -1,5 +1,5 @@
+@{title(CONF.name)}
 @{layout('')}
-@{title('Total.js Message Service')}
 
 <!DOCTYPE html>
 <html>
@@ -8,91 +8,44 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 	<meta http-equiv="X-UA-Compatible" content="IE=10" />
 	<meta name="robots" content="all,follow" />
-	<link href="https://cdn.componentator.com/spa.min@18.css" rel="stylesheet" type="text/css" />
 	<script src="//cdn.componentator.com/spa.min@18.js"></script>
-	@{import('meta', 'head', 'ui.css + default.css', 'func.js + ui.js + helpers.js', 'favicon.png')}
+	<link href="//cdn.componentator.com/spa.min@18.css" rel="stylesheet" />
+	<style>
+		html,body { margin: 0; padding: 0; overflow: hidden; }
+	</style>
+	@{import('meta', 'head', 'favicon.png')}
 </head>
-<body data---="exec">
+<body>
 
-	<div data---="LAZY menu__null__style:2"></div>
-	<div data---="LAZY approve__null__cancel:@(Cancel)"></div>
-	<div data---="LAZY message__null__style:2"></div>
-	<div data---="LAZY notifybar"></div>
-	<div data---="LAZY clipboard"></div>
-
-	<div data---="markdown"></div>
-	<div data---="shortcuts"></div>
-	<div data---="loading"></div>
-
-	<header data---="animation__null__init:500;delay:50;style:5">
-		<div class="animation">
-			<button class="exec apply" data-exec="flow/submit"><i class="fa fa-play"></i><span>@(APPLY)</span></button>
-		</div>
-		<div class="animation pull-right">
-			<button title="@(Add source)" class="exec green" data-exec="flow/add"><i class="fa fa-plus"></i></button>
-		</div>
-		<div class="animation">
-			<button title="@(Apps)" class="exec" data-exec="flow/sources"><i class="fa fa-code-branch"></i></button>
-			<button title="@(Clear)" class="exec" data-exec="flow/clear"><i class="far fa-trash-alt"></i></button>
-		</div>
-		<div class="animation">
-			<a href="https://docs.totaljs.com/" title="@(Documentation: Total.js Platform)" target="_blank" class="animation special"><i class="fa fa-book"></i></a>
-		</div>
-		<div class="animation">
-			<button disabled title="@(Undo)" data-bind="flow.undo__enabled:value && value.length" class="exec" data-exec="flow/operation" data-type="undo"><i class="fas fa-undo"></i></button>
-			<button disabled title="@(Redo)" data-bind="flow.redo__enabled:value && value.length" class="exec" data-exec="flow/operation" data-type="redo"><i class="fas fa-redo"></i></button>
-			<button title="@(Zoom in)" class="exec" data-exec="flow/operation" data-type="in"><i class="fas fa-search-plus"></i></button>
-			<button title="@(Reset zoom)" class="exec" data-exec="flow/operation" data-type="reset"><i class="fas fa-bullseye"></i></button>
-			<button title="@(Zoom out)" class="exec" data-exec="flow/operation" data-type="out"><i class="fas fa-search-minus"></i></button>
-		</div>
-	</header>
-
-	<div data---="layout__common.layout__margin:45">
-
-		<script type="text/plain">
-			{
-				left: { size: 265, minsize: 200, resize: true },
-				main: {}
-			}
-		</script>
-
-
-		<section data-type="left">
-			<div data-import="url:/panels/flow.html"></div>
-		</section>
-
-		<section data-type="main">
-			<div data---="part__common.page__if:flow;url:/parts/flow.html;reload:flow/reload" data-id="flow" class="hidden invisible"></div>
-		</section>
-
-	</div>
+	<div data---="designer"></div>
 
 	<script>
-
 		var common = {};
 
-		common.layout = '';
-		common.windows = [];
-		common.page = 'flow';
+		COMPONENT('designer', 'parent:window;margin:0', function(self, config) {
 
-		DEF.api = '/api/';
-		DEF.dateformat = '@(yyyy-MM-dd)';
+			self.readonly();
 
-		ON('@flag showloading', function() {
-			SETTER('loading/show');
+			var iframe;
+
+			self.make = function() {
+				var url = location.protocol + '//flowstreamdesigner.totaljs.com/?darkmode={0}&socket={1}'.format($('body').hclass('ui-dark') ? '1' : '0', encodeURIComponent(location.origin.replace(/^http/, 'ws') + '/tms/?openplatform={0}'.format(encodeURIComponent(NAV.query.openplatform || ''))));
+				self.append(('<iframe src="{0}" scrolling="no" frameborder="0"></iframe>').format(url));
+				iframe = self.find('iframe');
+				self.resizeforce();
+				self.on('resize + resize2', self.resize);
+			};
+
+			self.resize = function() {
+				setTimeout2(self.ID, self.resizeforce, 300);
+			};
+
+			self.resizeforce = function() {
+				var parent = self.parent(config.parent);
+				iframe.css({ width: parent.width(), height: parent.height() - config.margin })
+			};
+
 		});
-
-		ON('@flag hideloading', function() {
-			SETTER('loading/hide', 1000);
-		});
-
-		SETTER(true, 'shortcuts/register', 'CMD+F, CTRL+F', function() {
-			$('.ui-layout-left').find('input').focus();
-		}, true);
-
-		SETTER(true, 'shortcuts/register', 'CMD+ENTER, CTRL+ENTER', function() {
-			EXEC('flow/submit');
-		}, true);
 
 	</script>
 
