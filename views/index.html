@@ -17,9 +17,10 @@
 </head>
 <body>
 
-	<div data---="designer"></div>
+	<div data---="designer__null__url:@{CONF.flowstream_designer.replace(/\:/g, '\\:')};components:@{CONF.flowstream_components.replace(/\:/g, '\\:')}"></div>
 
 	<script>
+
 		var common = {};
 
 		COMPONENT('designer', 'parent:window;margin:0', function(self, config) {
@@ -29,7 +30,7 @@
 			var iframe;
 
 			self.make = function() {
-				var url = location.protocol + '//flowstreamdesigner.totaljs.com/?darkmode={0}&socket={1}&tms=1&components={2}'.format($('body').hclass('ui-dark') ? '1' : '0', encodeURIComponent(location.origin.replace(/^http/, 'ws') + '/tms/?openplatform={0}'.format(encodeURIComponent(NAV.query.openplatform || ''))), encodeURIComponent(config.components || ''));
+				var url = location.protocol + '//' + config.url + '/?darkmode={0}&socket={1}&tms=1&components={2}'.format($('body').hclass('ui-dark') ? '1' : '0', encodeURIComponent(location.origin.replace(/^http/, 'ws') + '/tms/?openplatform={0}'.format(encodeURIComponent(NAV.query.openplatform || ''))), encodeURIComponent(config.components || ''));
 				self.append(('<iframe src="{0}" scrolling="no" frameborder="0"></iframe>').format(url));
 				iframe = self.find('iframe');
 				self.resizeforce();

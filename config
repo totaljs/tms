@@ -2,4 +2,9 @@ name                  : TMS integrator
 allow_custom_titles   : true
 cdn                   : https://cdn.componentator.com
 backup                : false
+
+flowstream_designer   : flowstreamdesigner.totaljs.com
 flowstream_worker     : false
+
+// Own list of components and the structure must be same as https://cdn.totaljs.com/flowstream/components/db.json
+// flowstream_components : https://website.com/components.json
