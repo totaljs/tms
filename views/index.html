@@ -17,7 +17,7 @@
 </head>
 <body>
 
-	<div data---="designer__null__url:@{CONF.flowstream_designer.replace(/\:/g, '\\:')};components:@{CONF.flowstream_components.replace(/\:/g, '\\:')}"></div>
+	<div data---="designer__null__url:@{CONF.flowstream_designer.replace(/\:/g, '\\:')};components:@{(CONF.flowstream_components || '').replace(/\:/g, '\\:')}"></div>
 
 	<script>
 
