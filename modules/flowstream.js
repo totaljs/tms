@@ -992,11 +992,14 @@ function MAKEFLOWSTREAM(meta) {
 			tmp.component = com.component;
 			tmp.connections = CLONE(com.connections);
 			var c = flow.meta.components[com.component];
-			tmp.meta = { type: c.type, icon: c.icon, group: c.group, name: c.name, inputs: c.inputs, outputs: c.outputs };
-			design[key] = tmp;
+			if (c) {
+				tmp.meta = { type: c.type, icon: c.icon, group: c.group, name: c.name, inputs: c.inputs, outputs: c.outputs };
+				design[key] = tmp;
+			}
 		}
 
 		var data = {};
+		data.paused = flow.paused;
 		data.id = meta.id;
 		data.reference = meta.reference;
 		data.author = meta.author;
@@ -1048,6 +1051,19 @@ function MAKEFLOWSTREAM(meta) {
 
 	flow.sources = meta.sources;
 	flow.proxy = {};
+
+	flow.proxy.variables = function(data) {
+		flow.variables = data;
+		for (var key in flow.meta.flow) {
+			var instance = flow.meta.flow[key];
+			instance.variables && instance.variables(flow.variables);
+		}
+		var msg = {};
+		msg.TYPE = 'flow/variables';
+		msg.data = data;
+		flow.proxy.online && flow.proxy.send(msg);
+		save();
+	};
 
 	flow.proxy.message = function(msg, clientid) {
 		switch (msg.TYPE) {
@@ -1147,6 +1163,31 @@ function MAKEFLOWSTREAM(meta) {
 				msg.TYPE = 'flow/sources';
 				msg.data = flow.sources;
 				flow.proxy.online && flow.proxy.send(msg, 1, clientid);
+				break;
+
+			case 'pause':
+
+				if (msg.id == null) {
+					// entire flow
+					flow.pause(msg.is);
+					save();
+					return;
+				}
+
+				if (msg.is) {
+					if (!flow.meta.flow.paused)
+						flow.meta.flow.paused = {};
+					flow.meta.flow.paused[msg.id] = 1;
+					save();
+				} else {
+					if (flow.meta.flow.paused) {
+						delete flow.meta.flow.paused[msg.id];
+						save();
+					}
+				}
+				msg.TYPE = 'flow/pause';
+				console.log(msg, clientid);
+				flow.proxy.online && flow.proxy.send(msg, 2, clientid);
 				break;
 
 			case 'source_read':
@@ -1249,6 +1290,9 @@ function MAKEFLOWSTREAM(meta) {
 	flow.sockets = {};
 	flow.$schema = meta;
 
+	if (meta.paused)
+		flow.pause(true);
+
 	flow.load(meta.components, meta.design, function() {
 
 		Object.keys(flow.sources).wait(function(key, next) {
@@ -1304,11 +1348,13 @@ function MAKEFLOWSTREAM(meta) {
 			memory = process.memoryUsage().heapUsed;
 			flow.stats.memory = memory;
 			flow.stats.errors = flow.errors.length;
-			Parent && Parent.postMessage({ TYPE: 'stream/stats', data: { messages: flow.stats.messages, pending: flow.stats.pending, memory: flow.stats.memory, minutes: flow.stats.minutes, errors: flow.stats.errors, mm: flow.stats.mm } });
+			Parent && Parent.postMessage({ TYPE: 'stream/stats', data: { paused: flow.paused, messages: flow.stats.messages, pending: flow.stats.pending, memory: flow.stats.memory, minutes: flow.stats.minutes, errors: flow.stats.errors, mm: flow.stats.mm } });
 		} else {
 			flow.stats.memory = memory;
 			flow.stats.errors = flow.errors.length;
 		}
+
+		stats.paused = flow.paused;
 
 		flow.stats.TYPE = 'flow/stats';
 		flow.proxy.online && flow.proxy.send(stats);
@@ -1360,6 +1406,10 @@ function MAKEFLOWSTREAM(meta) {
 			item.config = instance.config;
 			flow.proxy.online && flow.proxy.send({ TYPE: 'flow/redraw', id: instance.id, data: item });
 			save();
+		};
+
+		instance.newvariables = function(data) {
+			flow.proxy.variables(data || {});
 		};
 
 		instance.newflowstream = function(meta, isworker, callback) {
@@ -1453,7 +1503,7 @@ function MAKEFLOWSTREAM(meta) {
 
 	flow.proxy.newclient = function(clientid) {
 		if (flow.proxy.online) {
-			flow.proxy.send({ TYPE: 'flow/flowstream', version: VERSION }, 1, clientid);
+			flow.proxy.send({ TYPE: 'flow/flowstream', version: VERSION, paused: flow.paused }, 1, clientid);
 			flow.proxy.send({ TYPE: 'flow/variables', data: flow.variables }, 1, clientid);
 			flow.proxy.send({ TYPE: 'flow/variables2', data: flow.variables2 }, 1, clientid);
 			flow.proxy.send({ TYPE: 'flow/components', data: flow.components(true) }, 1, clientid);
@@ -1578,7 +1628,7 @@ TMS.connect = function(fs, sourceid, callback) {
 			for (var key in fs.meta.flow) {
 				var instance = fs.meta.flow[key];
 				var com = fs.meta.components[instance.component];
-				if (com.itemid === item.id && com.outputs && com.outputs.length) {
+				if (com && com.itemid === item.id && com.outputs && com.outputs.length) {
 					if (Object.keys(instance.connections).length)
 						publishers[com.schema.id] = 1;
 				}
@@ -1650,12 +1700,14 @@ TMS.connect = function(fs, sourceid, callback) {
 					break;
 
 				case 'call':
+
 					var callback = client.callbacks[msg.callbackid];
 					if (callback) {
 						callback.id && clearTimeout(callback.id);
 						callback.callback(msg.error ? msg.data : null, msg.error ? null : msg.data);
 						delete client.callbacks[msg.callbackid];
 					}
+
 					break;
 
 				case 'subscribers':
@@ -1669,6 +1721,10 @@ TMS.connect = function(fs, sourceid, callback) {
 					break;
 
 				case 'publish':
+
+					if (fs.paused)
+						return;
+
 					var schema = client.publishers[msg.id];
 					if (schema) {
 						// HACK: very fast validation
@@ -1683,6 +1739,7 @@ TMS.connect = function(fs, sourceid, callback) {
 							}
 						}
 					}
+
 					break;
 			}
 
@@ -1786,7 +1843,6 @@ const TEMPLATE_CALL = `<script total>
 
 		instance.message = function(msg, client) {
 			var socket = instance.main.sockets['{7}'];
-
 			if (socket && socket.calls && socket.calls['{1}']) {
 
 				/*
