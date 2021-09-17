@@ -40,16 +40,18 @@ FS.init = function(id, next) {
 
 	flow.variables2 = FS.db.variables || {};
 
-	var instance = MODULE('flowstream').init(flow, CONF.flowstream_worker);
-	instance.ondone = () => next();
-	instance.onerror = (err, type) => console.log('FlowError', err, type);
-	instance.onsave = function(data) {
-		delete flow.variables2;
-		FS.db[id] = data;
-		FS.save();
-	};
+	MODULE('flowstream').init(flow, CONF.flowstream_worker, function(err, instance) {
+		instance.httprouting();
+		instance.ondone = () => next();
+		instance.onerror = (err, type) => console.log('FlowError', err, type);
+		instance.onsave = function(data) {
+			delete flow.variables2;
+			FS.db[id] = data;
+			FS.save();
+		};
 
-	FS.instances[id] = instance;
+		FS.instances[id] = instance;
+	});
 };
 
 ON('ready', function() {
