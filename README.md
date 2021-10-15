@@ -14,3 +14,10 @@ Total.js TMS Integrator can integrate multiple Total.js apps with the help of To
 __Requirements__:
 
 - Total.js 4 - `$ npm install total4`
+
+__Docker__:
+
+```bash
+docker pull totalplatform/tms
+docker run -p 8000:8000 totalplatform/tms
+````
