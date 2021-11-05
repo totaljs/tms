@@ -43,7 +43,17 @@ FS.init = function(id, next) {
 	MODULE('flowstream').init(flow, CONF.flowstream_worker, function(err, instance) {
 		instance.httprouting();
 		instance.ondone = () => next();
-		instance.onerror = (err, type) => console.log('FlowError', err, type);
+		instance.onerror = function(err, source, id, component) {
+			var empty = '---';
+			var output = '';
+			output += '|------------- FlowError: ' + new Date().format('yyyy-MM-dd HH:mm:ss') + '\n';
+			output += '| ' + err.toString() + '\n';
+			output += '| Source: ' + (source || empty) + '\n';
+			output += '| Instance ID: ' + (id || empty) + '\n';
+			output += '| Component ID: ' + (component || empty);
+			console.error(output);
+		};
+
 		instance.onsave = function(data) {
 			delete flow.variables2;
 			FS.db[id] = data;
