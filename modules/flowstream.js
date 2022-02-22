@@ -1,14 +1,15 @@
 // FlowStream module
 // The MIT License
-// Copyright 2021 (c) Peter Širka <petersirka@gmail.com>
+// Copyright 2021-2022 (c) Peter Širka <petersirka@gmail.com>
 
 if (!global.F)
 	require('total4');
 
 const W = require('worker_threads');
 const Fork = require('child_process').fork;
-const VERSION = 12;
+const VERSION = 14;
 
+var isFLOWSTREAMWORKER = false;
 var Parent = W.parentPort;
 var CALLBACKS = {};
 var FLOWS = {};
@@ -724,6 +725,10 @@ function httprequest(self, opt, callback) {
 
 function init_current(meta, callback) {
 
+	// Due to C/C++ modules
+	if (isFLOWSTREAMWORKER)
+		CONF.node_modules = '~' + PATH.join(meta.directory, meta.id, 'node_modules');
+
 	var flow = MAKEFLOWSTREAM(meta);
 	FLOWS[meta.id] = flow;
 
@@ -944,6 +949,9 @@ function init_current(meta, callback) {
 				} else if (source === 'instance_close') {
 					instanceid = instance.id;
 					componentid = instance.component;
+				} else if (source === 'instance_make') {
+					instanceid = instance.id;
+					componentid = instance.component;
 				} else if (source === 'register') {
 					instanceid = '';
 					componentid = instance;
@@ -1028,6 +1036,9 @@ function init_current(meta, callback) {
 					instanceid = instance.instance.id;
 					componentid = instance.instance.component;
 				} else if (source === 'instance_close') {
+					instanceid = instance.id;
+					componentid = instance.component;
+				} else if (source === 'instance_make') {
 					instanceid = instance.id;
 					componentid = instance.component;
 				} else if (source === 'register') {
@@ -1356,7 +1367,6 @@ function MAKEFLOWSTREAM(meta) {
 	var saveid;
 
 	flow.metadata = meta;
-
 	flow.export_instance2 = function(id) {
 
 		var com = flow.meta.flow[id];
@@ -1485,7 +1495,25 @@ function MAKEFLOWSTREAM(meta) {
 		switch (msg.TYPE) {
 
 			case 'call':
-				var instance = flow.meta.flow[msg.id];
+
+				var instance;
+
+				// Executes "exports.call"
+				if (msg.id[0] === '@') {
+					instance = flow.meta.components[msg.id.substring(1)];
+					if (instance && instance.call) {
+						msg.id = msg.callbackid;
+						msg.TYPE = 'flow/call';
+						instance.call.call(flow, msg.data, function(data) {
+							msg.data = data;
+							flow.proxy.online && flow.proxy.send(msg, 1, clientid);
+							callback && callback(msg);
+						});
+					}
+					return;
+				}
+
+				instance = flow.meta.flow[msg.id];
 				if (instance && instance.call) {
 					msg.id = msg.callbackid;
 					msg.TYPE = 'flow/call';
@@ -1950,6 +1978,10 @@ function MAKEFLOWSTREAM(meta) {
 		instance.reconfigure = function(config) {
 			instance.main.reconfigure(instance.id, config);
 		};
+	};
+
+	flow.io = function(flowstreamid, id, callback) {
+		flow.proxy.io(flowstreamid, id, callback);
 	};
 
 	flow.onreconfigure = function(instance, init) {
@@ -2459,10 +2491,10 @@ TMS.refresh = function(fs, callback) {
 					readme.push('- Channel: __publish__');
 					readme.push('- JSON schema `' + m.id + '.json`');
 					readme.push('- Version: ' + VERSION);
-
-					readme.push('```json');
+					readme.push('');
+					readme.push('\`\`\`json');
 					readme.push(JSON.stringify(m.schema, null, '  '));
-					readme.push('```');
+					readme.push('\`\`\`');
 
 					var id = 'pub' + item.id + 'X' + m.id;
 					var template = TEMPLATE_PUBLISH.format(item.meta.name, m.id, readme.join('\n'), m.icon || 'fas fa-broadcast-tower', m.url, id, makeschema(m.schema), item.id);
@@ -2484,10 +2516,10 @@ TMS.refresh = function(fs, callback) {
 					readme.push('- Channel: __subscribe__');
 					readme.push('- JSON schema `' + m.id + '.json`');
 					readme.push('- Version: ' + VERSION);
-
-					readme.push('```json');
+					readme.push('');
+					readme.push('\`\`\`json');
 					readme.push(JSON.stringify(m, null, '  '));
-					readme.push('```');
+					readme.push('\`\`\`');
 
 					var id = 'sub' + item.id + 'X' + m.id;
 					var template = TEMPLATE_SUBSCRIBE.format(item.meta.name, m.id, readme.join('\n'), m.icon || 'fas fa-satellite-dish', m.url, id, makeschema(m.schema), item.id);
@@ -2509,10 +2541,10 @@ TMS.refresh = function(fs, callback) {
 					readme.push('- Channel: __call__');
 					readme.push('- JSON schema `' + m.id + '.json`');
 					readme.push('- Version: ' + VERSION);
-
-					readme.push('```json');
+					readme.push('');
+					readme.push('\`\`\`json');
 					readme.push(JSON.stringify(m.schema, null, '  '));
-					readme.push('```');
+					readme.push('\`\`\`');
 
 					var id = 'cal' + item.id + 'X' + m.id;
 					var template = TEMPLATE_CALL.format(item.meta.name, m.id, readme.join('\n'), m.icon || 'far fa-plug', m.url, id, makeschema(m.schema), item.id);
@@ -2608,6 +2640,8 @@ TMS.refresh2 = function(fs) {
 	setTimeout2('tms_refresh_' + fs.name, fs => TMS.refresh(fs), 500, null, fs);
 };
 
+isFLOWSTREAMWORKER = W.workerData || process.argv.indexOf('--fork') !== -1;
+
 // Runs the worker
 if (W.workerData) {
 	F.dir(PATH.join(__dirname, '../'));
@@ -2629,4 +2663,16 @@ if (process.argv.indexOf('--fork') !== -1) {
 ON('service', function() {
 	if (CALLBACKID > 999999999)
 		CALLBACKID = 1;
+});
+
+ON('exit', function() {
+	for (var key in FLOWS) {
+		var flow = FLOWS[key];
+		if (flow.terminate || flow.kill) {
+			if (flow.terminate)
+				flow.terminate();
+			else
+				flow.kill(9);
+		}
+	}
 });
